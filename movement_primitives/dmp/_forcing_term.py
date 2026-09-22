@@ -29,13 +29,16 @@ class ForcingTerm:
     alpha_z : float
         Value of the alpha parameter of the canonical system.
 
+    scaling : array_like
+        Scaling factor for forcing term. Default = 1.0.
+
     Attributes
     ----------
     weights_ : array, shape (n_dims, n_weights_per_dim)
         Weights of the forcing term.
     """
     def __init__(self, n_dims, n_weights_per_dim, goal_t, start_t, overlap,
-                 alpha_z):
+                 alpha_z, scaling = 1.0):
         if n_weights_per_dim <= 1:
             raise ValueError("The number of weights per dimension must be > 1!")
         self.n_weights_per_dim = n_weights_per_dim
@@ -45,6 +48,7 @@ class ForcingTerm:
         self.start_t = start_t
         self.overlap = overlap
         self.alpha_z = alpha_z
+        self.scaling = scaling
 
         self._init_rbfs(n_dims, n_weights_per_dim, start_t)
 
@@ -90,7 +94,8 @@ class ForcingTerm:
     def forcing_term(self, z):
         z = np.atleast_1d(z)
         activations = self._activations(z)
-        return z[np.newaxis, :] * self.weights_.dot(activations)
+        # print(self.scaling)
+        return z[np.newaxis, :] * self.weights_.dot(activations) * self.scaling
 
     def __call__(self, t):
         return self.forcing_term(self.phase(t))

@@ -412,7 +412,8 @@ class DMP(WeightParametersMixin, DMPBase):
     """
     def __init__(self, n_dims, execution_time=1.0, dt=0.01,
                  n_weights_per_dim=10, int_dt=0.001, p_gain=0.0,
-                 smooth_scaling=False, alpha_y=25.0, beta_y=6.25):
+                 smooth_scaling=False, alpha_y=25.0, beta_y=6.25,
+                 goal_scale = True):
         super(DMP, self).__init__(n_dims, n_dims)
         self._execution_time = execution_time
         self.dt_ = dt
@@ -420,6 +421,10 @@ class DMP(WeightParametersMixin, DMPBase):
         self.int_dt = int_dt
         self.p_gain = p_gain
         self.smooth_scaling = smooth_scaling
+        self.goal_scale = goal_scale
+
+        self.demo_start = None
+        self.demo_goal = None
 
         self._init_forcing_term()
 
@@ -440,6 +445,11 @@ class DMP(WeightParametersMixin, DMPBase):
         weights = self.forcing_term.weights_
         self._init_forcing_term()
         self.forcing_term.weights_ = weights
+
+    def configure(self, start_y, goal_y):
+        if self.goal_scale:
+            self.forcing_term.scaling = ((goal_y-start_y)/(self.demo_goal-self.demo_start))[:, np.newaxis]
+        super().configure(start_y=start_y, goal_y=goal_y)
 
     execution_time_ = property(get_execution_time_, set_execution_time_)
 
@@ -581,7 +591,7 @@ class DMP(WeightParametersMixin, DMPBase):
         allow_final_velocity : bool, optional (default: False)
             Allow a final velocity.
         """
-        self.forcing_term.weights_[:, :], start_y, _, _, goal_y, _, _ = \
+        self.forcing_term.weights_[:, :], self.demo_start, _, _, self.demo_goal, _, _ = \
             dmp_imitate(
             T, Y,
             n_weights_per_dim=self.n_weights_per_dim,
@@ -591,7 +601,7 @@ class DMP(WeightParametersMixin, DMPBase):
             alpha_z=self.forcing_term.alpha_z,
             allow_final_velocity=allow_final_velocity,
             smooth_scaling=self.smooth_scaling)
-        self.configure(start_y=start_y, goal_y=goal_y)
+        self.configure(start_y=self.demo_start, goal_y=self.demo_goal)
 
 
 def dmp_transformation_system(
