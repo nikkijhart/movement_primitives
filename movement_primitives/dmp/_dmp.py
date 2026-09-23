@@ -387,6 +387,9 @@ class DMP(WeightParametersMixin, DMPBase):
     beta_y : float, list with length n_dims, or array with shape (n_dims,), optional (default: 6.25)
         Parameter of the transformation system.
 
+    goal_scale : bool
+        Whether to include the goal scaling term in eqs. 2.3, 2.18 of [1].
+
     Attributes
     ----------
     execution_time_ : float

@@ -94,7 +94,6 @@ class ForcingTerm:
     def forcing_term(self, z):
         z = np.atleast_1d(z)
         activations = self._activations(z)
-        # print(self.scaling)
         return z[np.newaxis, :] * self.weights_.dot(activations) * self.scaling
 
     def __call__(self, t):
