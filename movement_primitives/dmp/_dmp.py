@@ -388,7 +388,7 @@ class DMP(WeightParametersMixin, DMPBase):
         Parameter of the transformation system.
 
     goal_scale : bool
-        Whether to include the goal scaling term in eqs. 2.3, 2.18 of [1].
+        Whether to include the goal scaling term in eq. 2.18 of [1].
 
     Attributes
     ----------
@@ -416,7 +416,7 @@ class DMP(WeightParametersMixin, DMPBase):
     def __init__(self, n_dims, execution_time=1.0, dt=0.01,
                  n_weights_per_dim=10, int_dt=0.001, p_gain=0.0,
                  smooth_scaling=False, alpha_y=25.0, beta_y=6.25,
-                 goal_scale = True):
+                 goal_scale = False):
         super(DMP, self).__init__(n_dims, n_dims)
         self._execution_time = execution_time
         self.dt_ = dt
@@ -451,7 +451,7 @@ class DMP(WeightParametersMixin, DMPBase):
 
     def configure(self, start_y, goal_y):
         if self.goal_scale:
-            self.forcing_term.scaling = ((goal_y-start_y)/(self.demo_goal-self.demo_start))[:, np.newaxis]
+            self.forcing_term.scaling = ((goal_y-start_y)/(self.demo_goal-self.demo_start + 1e-6))[:, np.newaxis]
         super().configure(start_y=start_y, goal_y=goal_y)
 
     execution_time_ = property(get_execution_time_, set_execution_time_)
