@@ -450,8 +450,12 @@ class DMP(WeightParametersMixin, DMPBase):
         self.forcing_term.weights_ = weights
 
     def configure(self, start_y, goal_y):
+        demo_scale = self.demo_goal-self.demo_start
+        exec_scale = goal_y-start_y 
         if self.goal_scale:
-            self.forcing_term.scaling = ((goal_y-start_y)/(self.demo_goal-self.demo_start + 1e-6))[:, np.newaxis]
+            self.forcing_term.scaling = ((goal_y-start_y)/(self.demo_goal-self.demo_start))[:, np.newaxis]
+            # Do not scale directions where start and goal are very close
+            self.forcing_term.scaling[np.union1d(np.where(np.abs(demo_scale)<0.01)[0], np.where(np.abs(exec_scale)<0.01)[0])] = 1
         super().configure(start_y=start_y, goal_y=goal_y)
 
     execution_time_ = property(get_execution_time_, set_execution_time_)
