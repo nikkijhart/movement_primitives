@@ -307,7 +307,12 @@ class CartesianDMP(DMPBase):
 
         # TODO tracking error
 
-        self.current_y[:], self.current_yd[:] = last_y, last_yd
+        if not self.initialized:
+            self.current_y = np.copy(self.start_y)
+            self.current_yd = np.copy(self.start_yd)
+            self.initialized = True
+
+        # self.current_y[:], self.current_yd[:] = last_y, last_yd
         step_function(
             self.last_t, self.t,
             self.current_y[:3], self.current_yd[:3],
