@@ -63,7 +63,7 @@ def main() -> None:
 
     # Set up DMP
     dmp = CartesianDMP(execution_time=execution_time, dt=mjc_dt,
-          n_weights_per_dim=10, int_dt=mjc_dt)
+          n_weights_per_dim=10, int_dt=mjc_dt, goal_scale=True)
     Y = np.zeros((int(execution_time / mjc_dt), 7))
     T = np.linspace(0, 1, len(Y))
     start = get_ee_pos(model, data, ee_idx)

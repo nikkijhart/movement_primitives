@@ -233,13 +233,18 @@ class CartesianDMP(DMPBase):
     """
     def __init__(
             self, execution_time=1.0, dt=0.01, n_weights_per_dim=10,
-            int_dt=0.001, smooth_scaling=False, alpha_y=25.0, beta_y=6.25):
+            int_dt=0.001, smooth_scaling=False, alpha_y=25.0, beta_y=6.25,
+            goal_scale = False):
         super(CartesianDMP, self).__init__(7, 6)
         self._execution_time = execution_time
         self.dt_ = dt
         self.n_weights_per_dim = n_weights_per_dim
         self.int_dt = int_dt
         self.smooth_scaling = smooth_scaling
+        self.goal_scale = goal_scale
+
+        self.demo_start = None
+        self.demo_goal = None
 
         self._init_forcing_term()
 
@@ -265,6 +270,17 @@ class CartesianDMP(DMPBase):
         self._init_forcing_term()
         self.forcing_term_pos.weights_ = weights_pos
         self.forcing_term_rot.weights_ = weights_rot
+
+    def configure(self, start_y, goal_y):
+        demo_scale_pos = self.demo_goal[:3]-self.demo_start[:3]
+        exec_scale_pos = goal_y[:3]-start_y[:3]
+        demo_scale_quat = self.demo_goal[3:]-self.demo_start[3:]
+        exec_scale_quat = goal_y[3:]-start_y[3:]
+        if self.goal_scale:
+            self.forcing_term_pos.scaling = ((exec_scale_pos)/(demo_scale_pos))[:, np.newaxis]
+            # Do not scale directions where start and goal are very close
+            self.forcing_term_pos.scaling[np.union1d(np.where(np.abs(demo_scale_pos)<0.01)[0], np.where(np.abs(exec_scale_pos)<0.01)[0])] = 1
+        super().configure(start_y=start_y, goal_y=goal_y)
 
     execution_time_ = property(get_execution_time_, set_execution_time_)
 
@@ -420,7 +436,7 @@ class CartesianDMP(DMPBase):
         allow_final_velocity : bool, optional (default: False)
             Allow a final velocity.
         """
-        self.forcing_term_pos.weights_[:, :] = dmp_imitate(
+        self.forcing_term_pos.weights_[:, :], start_pos, _, _, goal_pos, _, _ = dmp_imitate(
             T, Y[:, :3],
             n_weights_per_dim=self.n_weights_per_dim,
             regularization_coefficient=regularization_coefficient,
@@ -428,8 +444,8 @@ class CartesianDMP(DMPBase):
             overlap=self.forcing_term_pos.overlap,
             alpha_z=self.forcing_term_pos.alpha_z,
             allow_final_velocity=allow_final_velocity,
-            smooth_scaling=self.smooth_scaling)[0]
-        self.forcing_term_rot.weights_[:, :] = dmp_quaternion_imitation(
+            smooth_scaling=self.smooth_scaling)
+        self.forcing_term_rot.weights_[:, :], start_quat, _, _, goal_quat, _, _  = dmp_quaternion_imitation(
             T, Y[:, 3:],
             n_weights_per_dim=self.n_weights_per_dim,
             regularization_coefficient=regularization_coefficient,
@@ -437,9 +453,11 @@ class CartesianDMP(DMPBase):
             overlap=self.forcing_term_rot.overlap,
             alpha_z=self.forcing_term_rot.alpha_z,
             allow_final_velocity=allow_final_velocity,
-            smooth_scaling=self.smooth_scaling)[0]
+            smooth_scaling=self.smooth_scaling)
+        self.demo_start = np.concatenate([start_pos, start_quat])
+        self.demo_goal = np.concatenate([goal_pos, goal_quat])
 
-        self.configure(start_y=Y[0], goal_y=Y[-1])
+        self.configure(start_y=self.demo_start, goal_y=self.demo_goal)
 
     def get_weights(self):
         """Get weight vector of DMP.
