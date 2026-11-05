@@ -31,7 +31,7 @@ def get_ee_pos(model, data, ee_idx):
     return np.append(pos, rot)
 
 def get_ee_vel(model, data, ee_idx):
-    return np.zeros(7)
+    return np.ones(6)
     return compute_jacobian(model, data, ee_idx) @ data.qvel[:9]
 
 def compute_jacobian(model, data, ee_idx):
@@ -62,7 +62,7 @@ def main() -> None:
     controller = DiffIKController(model, data, "EEF", config=[1.0, 1.0])
 
     # Set up DMP
-    dmp = DMP(n_dims = 7, execution_time=execution_time, dt=mjc_dt,
+    dmp = CartesianDMP(execution_time=execution_time, dt=mjc_dt,
           n_weights_per_dim=10, int_dt=mjc_dt)
     Y = np.zeros((int(execution_time / mjc_dt), 7))
     T = np.linspace(0, 1, len(Y))
